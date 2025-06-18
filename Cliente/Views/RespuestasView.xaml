@@ -1,0 +1,100 @@
+﻿<UserControl x:Class="Cliente.Views.RespuestasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Cliente.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <Grid Background="SaddleBrown">
+        <Border Background="Bisque" CornerRadius="50" Margin="0" Padding="10" BorderThickness="1" BorderBrush="#FF3E3E42">
+            <Border.Effect>
+                <DropShadowEffect ShadowDepth="5" Color="Black" Opacity="0.5" BlurRadius="10"/>
+            </Border.Effect>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="400">
+
+                <TextBlock Text="{Binding Pregunta.Enunciado}" 
+                           FontSize="18" Foreground="Brown" 
+                           TextAlignment="Center" Margin="0,10,0,20" TextWrapping="Wrap"/>
+
+                <Label Content="Responde con sabiduria:" FontSize="16" Foreground="Brown" Margin="0,0,0,10"/>
+
+                <!-- Grid de opciones 2x2 -->
+                <ItemsControl ItemsSource="{Binding Pregunta.Opciones}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="2" Columns="2" Margin="5"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding}" 
+                                    IsEnabled="{Binding DataContext.Botones, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Command="{Binding DataContext.SeleccionarOpcionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}" 
+                                    Margin="5" FontSize="14" Height="100"
+                                    Background="Beige" Foreground="Brown" 
+                                    BorderBrush="Beige" Padding="10" Cursor="Hand">
+                                <Button.Effect>
+                                    <DropShadowEffect ShadowDepth="3" Color="Black" Opacity="0.3" BlurRadius="5"/>
+                                </Button.Effect>
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="10">
+                                                        <TextBlock Text="{TemplateBinding Content}"
+                                                                   TextWrapping="Wrap"
+                                                                   TextAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="{TemplateBinding Padding}"
+                                                                   Foreground="{TemplateBinding Foreground}"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Opacity" Value="0.5"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="RosyBrown"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Temporizador -->
+                <TextBlock Text="{Binding TiempoRestante}" 
+                           FontSize="24" Foreground="#FFFF6B6B" 
+                           HorizontalAlignment="Center" Margin="10" FontWeight="Bold"/>
+
+                <!-- Mensaje de Estado -->
+                <TextBlock Text="{Binding MensajeEstado}"
+                           FontSize="16" Foreground="#FF00CC99"
+                           HorizontalAlignment="Center" Margin="0,0,0,10"
+                           TextWrapping="Wrap" TextAlignment="Center"/>
+
+                <!-- Botón Enviar -->
+                <Button Content="Enviar" Command="{Binding EnviarCommand}"
+                        IsEnabled="{Binding Botones}"
+                        Width="250" Margin="0,20,0,0" FontSize="20" 
+                        Background="SaddleBrown" Foreground="White"
+                        BorderBrush="#FF005A9E" Padding="10" Cursor="Hand">
+                    <Button.Effect>
+                        <DropShadowEffect ShadowDepth="3" Color="Black" Opacity="0.3" BlurRadius="5"/>
+                    </Button.Effect>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
