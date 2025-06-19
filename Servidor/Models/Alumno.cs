@@ -21,8 +21,12 @@ namespace Servidor.Models
 
         public ObservableCollection<string> Respuestas { get; set; } = new();
 
-        public string NombreCompleto => string.IsNullOrEmpty(EndpointId) ? 
-            Nombre : 
+        public string NombreCompleto => string.IsNullOrEmpty(EndpointId) ?
+            Nombre :
             $"{Nombre} [{EndpointId}]";
+
+        public double PorcentajeAciertos { get; internal set; }
+
+      
     }
 }

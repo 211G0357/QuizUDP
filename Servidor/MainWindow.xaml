@@ -10,25 +10,42 @@
         <vm:QuizViewModel></vm:QuizViewModel>
     </Window.DataContext>
     <Grid>
+        <!-- Vista de Preguntas/Quiz -->
         <v:Quiz Margin="10">
             <v:Quiz.Style>
-                <Style>
-                    <Setter Property="UserControl.Visibility" Value="Hidden"/>
+                <Style TargetType="v:Quiz">
+                    <Setter Property="Visibility" Value="Collapsed"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding Vista}" Value="{x:Static vm:Vistas.Preguntas}">
-                            <Setter Property="UserControl.Visibility" Value="Visible"/>
+                            <Setter Property="Visibility" Value="Visible"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </v:Quiz.Style>
         </v:Quiz>
+
+        <!-- Vista de Resultados Parciales -->
+        <v:RespuestasParciales Margin="10">
+            <v:RespuestasParciales.Style>
+                <Style TargetType="v:RespuestasParciales">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Vista}" Value="{x:Static vm:Vistas.RespuestasParciales}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </v:RespuestasParciales.Style>
+        </v:RespuestasParciales>
+
+        <!-- Vista de Resultados Finales -->
         <v:Puntuaciones Margin="10">
             <v:Puntuaciones.Style>
-                <Style>
-                    <Setter Property="UserControl.Visibility" Value="Hidden"/>
+                <Style TargetType="v:Puntuaciones">
+                    <Setter Property="Visibility" Value="Collapsed"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding Vista}" Value="{x:Static vm:Vistas.Resultados}">
-                            <Setter Property="UserControl.Visibility" Value="Visible"/>
+                            <Setter Property="Visibility" Value="Visible"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>

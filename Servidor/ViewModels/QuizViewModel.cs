@@ -13,14 +13,24 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using System.Windows;
 using System.IO;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace Servidor.ViewModels
 {
-    public enum Vistas { Preguntas, Resultados }
+    public enum Vistas { Preguntas, Resultados, RespuestasParciales}
 
     public partial class QuizViewModel : ObservableObject
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
         public ObservableCollection<Alumno> Alumnos { get; set; } = new();
+        public ObservableCollection<ResultadoParcialItem> ResultadosParciales { get; set; } = new();
         public List<Pregunta> Preguntas { get; set; } = new();
         private int preguntaActual = 0;
         private HashSet<string> respuestasActuales = new();
@@ -60,6 +70,7 @@ namespace Servidor.ViewModels
             Vista = Vistas.Preguntas;
         }
 
+        
         private void Tiempo(object? sender, EventArgs e)
         {
             if (TiempoRestante > 0)
@@ -68,56 +79,8 @@ namespace Servidor.ViewModels
             }
             else
             {
-                if (preguntaActual < Preguntas.Count - 1)
-                {
-                    Pregunta Pre = new Pregunta
-                    {
-                        Enunciado = "Respuesta Correcta: " + Pregunta.Respuesta,
-                        Opciones = new List<string>(),
-                        Respuesta = "TIEMPO_FEEDBACK" 
-                    };
-                    serverEnviar.EnviarPregunta(Pre);
-                    
-                    Task.Delay(3000).ContinueWith(_ =>
-                    {
-                        App.Current.Dispatcher.Invoke(() =>
-                        {
-                            if (preguntaActual < Preguntas.Count - 1)
-                            {
-                                preguntaActual++;
-                                respuestasActuales.Clear();
-                                Pregunta = Preguntas[preguntaActual];
-                                Pregunta NuevaPre = new Pregunta
-                                {
-                                    Enunciado = Pregunta.Enunciado,
-                                    Opciones = Pregunta.Opciones,
-                                    Respuesta = ""
-                                };
-                                serverEnviar.EnviarPregunta(NuevaPre);
-                                TiempoRestante = 15;
-                            }
-                        });
-                    });
-                }
-                else
-                {
-                    Pregunta Pre = new Pregunta
-                    {
-                        Enunciado = "Respuesta Correcta: " + Pregunta.Respuesta,
-                        Opciones = new List<string>(),
-                        Respuesta = "TIEMPO_FEEDBACK"
-                    };
-                    serverEnviar.EnviarPregunta(Pre);
-
-                    Task.Delay(3000).ContinueWith(_ =>
-                    {
-                        App.Current.Dispatcher.Invoke(() =>
-                        {
-                            timer.Stop();
-                            Vista = Vistas.Resultados;
-                        });
-                    });
-                }
+                timer.Stop();
+                MostrarResultadosParciales();
             }
         }
 
@@ -145,16 +108,19 @@ namespace Servidor.ViewModels
 
             preguntaActual = 0;
             Alumnos.Clear();
+            ResultadosParciales.Clear();
             respuestasActuales.Clear();
             Pregunta = Preguntas[preguntaActual];
-            Pregunta Pre = new Pregunta
+
+            serverEnviar.EnviarPregunta(new Pregunta
             {
                 Enunciado = Pregunta.Enunciado,
                 Opciones = Pregunta.Opciones,
                 Respuesta = ""
-            };
-            serverEnviar.EnviarPregunta(Pre);
+            });
+
             TiempoRestante = 15;
+            Vista = Vistas.Preguntas;
             timer.Start();
         }
 
@@ -186,5 +152,199 @@ namespace Servidor.ViewModels
                 }
             });
         }
+        private void MostrarResultadosParciales()
+        {
+            // Detener el timer mientras mostramos resultados
+            timer.Stop();
+
+            // Procesar las respuestas con índice seguro
+            var alumnosConRespuesta = Alumnos.Where(a => a.Respuestas.Count > preguntaActual).ToList();
+
+            var resultados = new
+            {
+                PreguntaTexto = Pregunta.Enunciado,
+                RespuestaCorrecta = Pregunta.Respuesta,
+                Acertaron = alumnosConRespuesta.Where(a => a.Respuestas[preguntaActual] == Pregunta.Respuesta).ToList(),
+                Fallaron = alumnosConRespuesta.Where(a => a.Respuestas[preguntaActual] != Pregunta.Respuesta).ToList(),
+                NoRespondieron = Alumnos.Except(alumnosConRespuesta).ToList()
+            };
+
+            // Limpiar y construir la colección de resultados
+            ResultadosParciales.Clear();
+
+            // Añadir pregunta y respuesta correcta
+            ResultadosParciales.Add(new ResultadoParcialItem
+            {
+                Titulo = "Pregunta",
+                Contenido = resultados.PreguntaTexto
+            });
+
+            ResultadosParciales.Add(new ResultadoParcialItem
+            {
+                Titulo = "Respuesta correcta",
+                Contenido = resultados.RespuestaCorrecta
+            });
+
+            // Añadir resultados de alumnos
+            ResultadosParciales.Add(new ResultadoParcialItem
+            {
+                Titulo = "Alumnos que acertaron",
+                Contenido = resultados.Acertaron.Any() ?
+                    string.Join(", ", resultados.Acertaron.Select(a => a.Nombre)) :
+                    "Ningún alumno acertó"
+            });
+
+            ResultadosParciales.Add(new ResultadoParcialItem
+            {
+                Titulo = "Alumnos que fallaron",
+                Contenido = resultados.Fallaron.Any() ?
+                    string.Join(", ", resultados.Fallaron.Select(a => a.Nombre)) :
+                    "Ningún alumno falló"
+            });
+
+            ResultadosParciales.Add(new ResultadoParcialItem
+            {
+                Titulo = "Alumnos que no respondieron",
+                Contenido = resultados.NoRespondieron.Any() ?
+                    string.Join(", ", resultados.NoRespondieron.Select(a => a.Nombre)) :
+                    "Todos los alumnos respondieron"
+            });
+
+            // Cambiar a la vista de resultados parciales
+            Vista = Vistas.RespuestasParciales;
+            OnPropertyChanged(nameof(ResultadosParciales)); // Notificar cambio
+
+            // Configurar el temporizador para la siguiente pregunta (5 segundos)
+            Task.Delay(5000).ContinueWith(_ =>
+            {
+                App.Current.Dispatcher.Invoke(() =>
+                {
+                    if (preguntaActual < Preguntas.Count - 1)
+                    {
+                        AvanzarASiguientePregunta();
+                    }
+                    else
+                    {
+                        Finalizar();
+                    }
+                });
+            });
+        }
+        private void AvanzarASiguientePregunta()
+        {
+            preguntaActual++;
+            respuestasActuales.Clear();
+            Pregunta = Preguntas[preguntaActual];
+
+            // Reiniciar el temporizador
+            TiempoRestante = 15;
+            OnPropertyChanged(nameof(TiempoRestante));
+
+            // Enviar nueva pregunta
+            serverEnviar.EnviarPregunta(new Pregunta
+            {
+                Enunciado = Pregunta.Enunciado,
+                Opciones = Pregunta.Opciones,
+                Respuesta = ""
+            });
+
+            // Cambiar a vista de pregunta
+            Vista = Vistas.Preguntas;
+            timer.Start();
+        }
+        private void SiguientePregunta()
+        {
+            preguntaActual++;
+            respuestasActuales.Clear();
+            Pregunta = Preguntas[preguntaActual];
+
+            // Enviar nueva pregunta a los clientes
+            serverEnviar.EnviarPregunta(new Pregunta
+            {
+                Enunciado = Pregunta.Enunciado,
+                Opciones = Pregunta.Opciones,
+                Respuesta = "" // No enviar la respuesta correcta
+            });
+
+            TiempoRestante = 15;
+            Vista = Vistas.Preguntas; // Asumo que esta es la vista para preguntas activas
+            timer.Start();
+        }
+        private void Finalizar()
+        {
+            try
+            {
+                // 1. Detener temporizadores
+                timer.Stop();
+
+                // 2. Calcular estadísticas finales
+                CalcularEstadisticas();
+
+                // 3. Preparar datos para la vista de resultados
+                PrepararResultadosFinales();
+
+                // 4. Reiniciar estado del quiz
+                ReiniciarEstadoQuiz();
+
+                // 5. Cambiar a vista de resultados
+                Vista = Vistas.Resultados;
+
+                
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al finalizar el quiz: {ex.Message}",
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void CalcularEstadisticas()
+        {
+            int totalPreguntas = Preguntas.Count;
+
+            foreach (var alumno in Alumnos)
+            {
+                int aciertos = 0;
+                for (int i = 0; i < Math.Min(totalPreguntas, alumno.Respuestas.Count); i++)
+                {
+                    if (alumno.Respuestas[i] == Preguntas[i].Respuesta)
+                    {
+                        aciertos++;
+                    }
+                }
+
+                alumno.Puntuacion = aciertos;
+                alumno.PorcentajeAciertos = totalPreguntas > 0 ?
+                    (double)aciertos / totalPreguntas * 100 : 0;
+            }
+        }
+
+        private void PrepararResultadosFinales()
+        {
+            // Ordenar alumnos por puntuación (y luego por nombre en caso de empate)
+            var alumnosOrdenados = Alumnos
+                .OrderByDescending(a => a.Puntuacion)
+                .ThenBy(a => a.Nombre)
+                .ToList();
+
+            Alumnos.Clear();
+            foreach (var alumno in alumnosOrdenados)
+            {
+                Alumnos.Add(alumno);
+            }
+        }
+
+        private void ReiniciarEstadoQuiz()
+        {
+            preguntaActual = 0;
+            respuestasActuales.Clear();
+            TiempoRestante = 0;
+            OnPropertyChanged(nameof(TiempoRestante));
+        }
+
+        
+
+
+
     }
 }
