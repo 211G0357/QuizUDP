@@ -17,6 +17,7 @@ namespace Cliente.ViewModels
         private readonly ClienteUDP cliente = new();
         Recibir clienteRecibir = new();
 
+
         [ObservableProperty]
         private string _vistaActual = "Nombre";
 
@@ -43,6 +44,14 @@ namespace Cliente.ViewModels
         [ObservableProperty]
         private string _mensajeEstado = "";
 
+
+        public ICommand EnviarCommand { get; }
+        public ICommand ContinuarCommand { get; }
+        public ICommand SeleccionarOpcionCommand { get; }
+
+
+        public event EventHandler<string>? IpConfirmada;
+
         public ClienteViewModel()
         {
             EnviarCommand = new RelayCommand(Enviar);
@@ -53,6 +62,7 @@ namespace Cliente.ViewModels
             timer.Interval = TimeSpan.FromSeconds(1);
             timer.Tick += Tiempo;
         }
+
 
         private void ContinuarAResponder()
         {
@@ -71,19 +81,19 @@ namespace Cliente.ViewModels
                 if (obj != null)
                 {
                     Pregunta = obj;
-                    
+
                     // Verificar si es tiempo de feedback
                     if (obj.Respuesta == "TIEMPO_FEEDBACK")
                     {
                         timer.Stop();
                         Botones = false;
-                        
+
                         // Si el usuario respondió, mostrar si fue correcta o incorrecta
                         if (YaRespondio)
                         {
                             bool esCorrecta = obj.Enunciado.Contains(Respuesta.respuesta);
-                            MensajeEstado = esCorrecta ? 
-                                "¡Correcto! 🎉" : 
+                            MensajeEstado = esCorrecta ?
+                                "¡Correcto! 🎉" :
                                 $"Incorrecto. {obj.Enunciado}";
                         }
                         else
@@ -130,10 +140,6 @@ namespace Cliente.ViewModels
             }
         }
 
-        public ICommand EnviarCommand { get; }
-        public ICommand ContinuarCommand { get; }
-        public ICommand SeleccionarOpcionCommand { get; }
-
         private void Enviar()
         {
             if (!YaRespondio && Botones && !string.IsNullOrEmpty(Respuesta.respuesta))
@@ -153,5 +159,6 @@ namespace Cliente.ViewModels
                 OnPropertyChanged(nameof(Respuesta));
             }
         }
+
     }
 }
