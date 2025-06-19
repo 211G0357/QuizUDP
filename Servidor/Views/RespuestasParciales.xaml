@@ -6,7 +6,8 @@
              xmlns:local="clr-namespace:Servidor.Views" xmlns:viewmodels="clr-namespace:Servidor.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:QuizViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Border Background="#FF1E1E1E" CornerRadius="15" Margin="20" Padding="20"
+    <Grid>
+        <Border Background="#FF1E1E1E" CornerRadius="15" Margin="20" Padding="20"
             BorderThickness="2" BorderBrush="#FF333333">
         <Border.Effect>
             <DropShadowEffect ShadowDepth="8" Color="#AA000000" Opacity="0.8" BlurRadius="15"/>
@@ -62,4 +63,5 @@
             </StackPanel>
         </StackPanel>
     </Border>
+    </Grid>
 </UserControl>
