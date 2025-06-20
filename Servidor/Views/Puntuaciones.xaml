@@ -30,7 +30,7 @@
                                         BorderBrush="#FF444444" BorderThickness="1">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding nombre}" 
+                                            <TextBlock Text="{Binding NombreCompleto}" 
                                                        FontSize="16" Foreground="White" Width="300"
                                                        FontFamily="Segoe UI"/>
                                             <TextBlock Text="{Binding Puntuacion}" 

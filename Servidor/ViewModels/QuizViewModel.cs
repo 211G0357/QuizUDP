@@ -16,6 +16,7 @@ using System.IO;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Diagnostics;
+using System.Net;
 
 namespace Servidor.ViewModels
 {
@@ -35,6 +36,10 @@ namespace Servidor.ViewModels
         private int preguntaActual = 0;
         private HashSet<string> respuestasActuales = new();
 
+
+        public string IP { get; set; } = "0.0.0.0";
+
+
         [ObservableProperty]
         private Vistas vista = Vistas.Preguntas;
 
@@ -46,14 +51,24 @@ namespace Servidor.ViewModels
 
         private DispatcherTimer timer;
 
+        [ObservableProperty]
+        bool botones = true;
+
         public ICommand IniciarCommand { get; }
         public ICommand RegresarCommand { get; }
 
         ServidorUDP server = new();
         private readonly Enviar serverEnviar = new();
 
+
+
         public QuizViewModel()
         {
+            //Mostrar la IP del servidor en el main
+            var ips = Dns.GetHostAddresses(Dns.GetHostName());
+            IP = ips.Where(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).
+                Select(x => x.ToString()).FirstOrDefault() ?? "0.0.0.0";
+
             CargarPreguntas();
             IniciarCommand = new RelayCommand(IniciarQuiz);
             RegresarCommand = new RelayCommand(Regresar);
@@ -68,6 +83,7 @@ namespace Servidor.ViewModels
         {
             timer.Stop();
             Vista = Vistas.Preguntas;
+            Botones = true;
         }
 
         
@@ -111,6 +127,7 @@ namespace Servidor.ViewModels
             ResultadosParciales.Clear();
             respuestasActuales.Clear();
             Pregunta = Preguntas[preguntaActual];
+            Botones = false;
 
             serverEnviar.EnviarPregunta(new Pregunta
             {

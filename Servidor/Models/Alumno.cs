@@ -25,6 +25,7 @@ namespace Servidor.Models
             Nombre :
             $"{Nombre} [{EndpointId}]";
 
+
         public double PorcentajeAciertos { get; internal set; }
 
       

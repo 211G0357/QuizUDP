@@ -53,6 +53,43 @@
                     </TextBox.Style>
                 </TextBox>
 
+                <!-- Título -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                    <TextBlock Text="✏️" FontSize="20" Foreground="#FFFFD700" Margin="0,0,8,0"/>
+                    <TextBlock Text="INGRESA LA IP DEL SERVIDOR" 
+                  FontSize="18" 
+                  FontWeight="SemiBold" 
+                  Foreground="#FFFFD700"
+                  FontFamily="Segoe UI"/>
+                </StackPanel>
+
+                <!-- Campo de texto -->
+                <TextBox Text="{Binding IP, UpdateSourceTrigger=PropertyChanged}" 
+            FontSize="16" 
+            Padding="12"
+            Background="#FF252525" 
+            Foreground="White" 
+            BorderBrush="#FF444444" 
+            BorderThickness="1"
+            HorizontalContentAlignment="Center"
+            FontFamily="Segoe UI"
+            CaretBrush="#FFFFD700"
+            Margin="0,0,0,15">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="BorderBrush" Value="#FFFFD700"/>
+                                </Trigger>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter Property="BorderBrush" Value="#FFFFD700"/>
+                                    <Setter Property="BorderThickness" Value="2"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+
                 <!-- Botón -->
                 <Button Command="{Binding ContinuarCommand}" 
                         Content="COMENZAR QUIZ" 

@@ -3,12 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Servidor.Views"
+             xmlns:local="clr-namespace:Servidor.Views" xmlns:viewmodels="clr-namespace:Servidor.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:QuizViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="570" d:DesignWidth="800">
 
     <Grid Background="#FF121212">
-      
+       
         <Border Background="#FF1E1E1E" CornerRadius="15" Margin="30" Padding="25" 
                 BorderThickness="2" BorderBrush="#FF333333">
             <Border.Effect>
@@ -16,7 +16,7 @@
             </Border.Effect>
 
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="600">
-
+                <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Right" Foreground="White">Dirección IP: <Run Text="{Binding IP}"></Run></TextBlock>
                 <!-- Pregunta -->
                 <TextBlock Text="{Binding Pregunta.Enunciado}" 
                            FontSize="24" 
@@ -77,6 +77,7 @@
         
                 <Button Content="INICIAR QUIZ" 
                         Command="{Binding IniciarCommand}" 
+                         IsEnabled="{Binding Botones}"
                         Width="220" Height="50" 
                         Background="#FFFFD700" 
                         Foreground="#FF222222" 
@@ -95,6 +96,10 @@
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Background" Value="#FFFFE500"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Background" Value="#FF444444"/>
+                                    <Setter Property="Foreground" Value="#FF888888"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

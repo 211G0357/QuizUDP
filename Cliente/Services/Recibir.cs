@@ -1,54 +1,63 @@
-﻿using Cliente.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Net;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-
-namespace Cliente.Services
+using System.Text;
+using Cliente.Models;
+public class Recibir
 {
-    public class Recibir
+    private readonly UdpClient clienteReceptor;
+    private IPEndPoint? servidorEndpoint;
+
+    public event Action<Pregunta>? RespuestaRecibida;
+
+    public Recibir()
     {
-        private readonly UdpClient clienteReceptor;
+        clienteReceptor = new UdpClient(60000); // Escucha aquí
+        clienteReceptor.EnableBroadcast = true;
 
-        public Recibir()
+        // Enviar broadcast PING
+        Task.Run(() =>
         {
-            clienteReceptor = new UdpClient(60000); 
-            clienteReceptor.EnableBroadcast = true;
+            using var udpPing = new UdpClient();
+            udpPing.EnableBroadcast = true;
 
-            Thread hilo = new(RecibirRespuesta)
-            {
-                IsBackground = true
-            };
-            hilo.Start();
-        }
+            byte[] datos = Encoding.UTF8.GetBytes("PING");
+            IPEndPoint broadcast = new IPEndPoint(IPAddress.Broadcast, 60001);
+            udpPing.Send(datos, datos.Length, broadcast);
+        });
 
-        public event Action<Pregunta>? RespuestaRecibida;
+        // Iniciar hilo de escucha
+        Thread hilo = new Thread(RecibirRespuesta) { IsBackground = true };
+        hilo.Start();
+    }
 
-        private void RecibirRespuesta()
+    private void RecibirRespuesta()
+    {
+        while (true)
         {
-            while (true)
+            try
             {
-                try
-                {
-                    IPEndPoint remitente = new(IPAddress.Any, 0);
-                    byte[] buffer = clienteReceptor.Receive(ref remitente);
+                IPEndPoint remitente = new IPEndPoint(IPAddress.Any, 0);
+                byte[] buffer = clienteReceptor.Receive(ref remitente);
+                string mensaje = Encoding.UTF8.GetString(buffer);
 
-                    string json = Encoding.UTF8.GetString(buffer);
-                    var pregunta = JsonSerializer.Deserialize<Pregunta>(json);
-                    if (pregunta != null)
-                    {
-                        RespuestaRecibida?.Invoke(pregunta);
-                    }
-                }
-                catch (Exception ex)
+                if (mensaje == "PONG")
                 {
-                    Console.WriteLine($"Error al recibir la pregunta: {ex.Message}");
+                    Console.WriteLine($"Servidor detectado: {remitente.Address}");
+                    servidorEndpoint = new IPEndPoint(remitente.Address, 60001);
+                    continue;
                 }
+
+                var pregunta = JsonSerializer.Deserialize<Pregunta>(mensaje);
+                if (pregunta != null)
+                {
+                    RespuestaRecibida?.Invoke(pregunta);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al recibir: {ex.Message}");
             }
         }
     }
-    }
+}

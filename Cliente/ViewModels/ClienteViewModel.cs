@@ -8,15 +8,17 @@ using System.Linq;
 using System.Windows.Input;
 using System.Windows.Threading;
 using System.Diagnostics;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Net.Sockets;
+using System.Net;
+using System.Text;
 
 namespace Cliente.ViewModels
 {
     public partial class ClienteViewModel : ObservableObject
     {
-        private readonly ClienteUDP cliente = new();
-        Recibir clienteRecibir = new();
+        private ClienteUDP cliente;
 
+        Recibir clienteRecibir = new(); // ✅ Ejemplo IP
 
         [ObservableProperty]
         private string _vistaActual = "Nombre";
@@ -25,10 +27,10 @@ namespace Cliente.ViewModels
         private List<string> _opciones = new();
 
         [ObservableProperty]
-        private Respuesta _Respuesta = new();
+        private Respuesta _respuesta = new();
 
         [ObservableProperty]
-        private Pregunta _Pregunta = new();
+        private Pregunta _pregunta = new();
 
         [ObservableProperty]
         private int tiempoRestante = 15;
@@ -44,35 +46,98 @@ namespace Cliente.ViewModels
         [ObservableProperty]
         private string _mensajeEstado = "";
 
+        public string IP { get; set; } = "0.0.0.0"; 
 
-        public ICommand EnviarCommand { get; }
-        public ICommand ContinuarCommand { get; }
-        public ICommand SeleccionarOpcionCommand { get; }
-
-
-        public event EventHandler<string>? IpConfirmada;
+        public ClienteUDP ClienteUDP
+        {
+            get => cliente;
+            private set => SetProperty(ref cliente, value);
+        }
 
         public ClienteViewModel()
         {
+            ClienteUDP = new();
             EnviarCommand = new RelayCommand(Enviar);
             ContinuarCommand = new RelayCommand(ContinuarAResponder);
             SeleccionarOpcionCommand = new RelayCommand<string>(SeleccionarOpcion);
+
             clienteRecibir.RespuestaRecibida += ClienteRecibir_RespuestaRecibida;
-            timer = new DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(1);
+
+            timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
             timer.Tick += Tiempo;
         }
 
-
-        private void ContinuarAResponder()
+        public void InicializarConexion()
         {
-            Debug.WriteLine($"Nombre ingresado: {Respuesta.nombre}");
-            if (!string.IsNullOrWhiteSpace(Respuesta.nombre))
+            ClienteUDP.Servidor = IP;
+        }
+
+
+        private bool EsIpValida(string ip)
+        {
+            return System.Net.IPAddress.TryParse(ip, out _);
+        }
+        private async Task<bool> VerificarServidorAsync(string ip)
+        {
+            using var udpClient = new UdpClient();
+            udpClient.Client.ReceiveTimeout = 1000; // 1 segundo
+            try
             {
-                Debug.WriteLine("Cambiando a vista de respuestas");
-                VistaActual = "Respuestas";
+                var endpoint = new IPEndPoint(IPAddress.Parse(ip), 60001); // puerto del servidor
+                byte[] datos = Encoding.UTF8.GetBytes("PING");
+                await udpClient.SendAsync(datos, datos.Length, endpoint);
+
+                var result = await udpClient.ReceiveAsync(); // espera respuesta
+                string respuesta = Encoding.UTF8.GetString(result.Buffer);
+                return respuesta == "PONG";
+            }
+            catch
+            {
+                return false;
             }
         }
+
+        private async void ContinuarAResponder()
+        {
+            if (!string.IsNullOrWhiteSpace(Respuesta.nombre) && EsIpValida(IP))
+            {
+                MensajeEstado = "Verificando conexión con el servidor...";
+
+                bool conectado = await VerificarServidorAsync(IP);
+                if (!conectado)
+                {
+                    MensajeEstado = "No se pudo establecer conexión con el servidor. Verifica la IP.";
+                    return;
+                }
+
+                InicializarConexion(); // ClienteUDP.Servidor = IP;
+                VistaActual = "Respuestas";
+                Debug.WriteLine($"Nombre ingresado: {Respuesta.nombre}, IP: {IP}");
+                MensajeEstado = $"Conectado al servidor {IP}";
+            }
+            else
+            {
+                MensajeEstado = "Por favor, ingresa una IP válida.";
+            }
+        }
+
+
+        //private void ContinuarAResponder()
+        //{
+        //    if (!string.IsNullOrWhiteSpace(Respuesta.nombre) && !string.IsNullOrWhiteSpace(IP))
+        //    {
+        //        InicializarConexion();
+        //        VistaActual = "Respuestas";
+        //        Debug.WriteLine($"Nombre ingresado: {Respuesta.nombre}, IP: {IP}");
+        //    }
+        //    else
+        //    {
+        //        MensajeEstado = "Por favor, ingresa la IP.";
+        //    }
+        //}
 
         private void ClienteRecibir_RespuestaRecibida(Pregunta obj)
         {
@@ -82,13 +147,11 @@ namespace Cliente.ViewModels
                 {
                     Pregunta = obj;
 
-                    // Verificar si es tiempo de feedback
                     if (obj.Respuesta == "TIEMPO_FEEDBACK")
                     {
                         timer.Stop();
                         Botones = false;
 
-                        // Si el usuario respondió, mostrar si fue correcta o incorrecta
                         if (YaRespondio)
                         {
                             bool esCorrecta = obj.Enunciado.Contains(Respuesta.respuesta);
@@ -103,12 +166,10 @@ namespace Cliente.ViewModels
                         return;
                     }
 
-                    // Si no es feedback, es una nueva pregunta
                     tiempoRestante = 15;
                     if (timer.IsEnabled)
-                    {
                         timer.Stop();
-                    }
+
                     timer.Start();
                     Botones = false;
                     YaRespondio = false;
@@ -123,7 +184,7 @@ namespace Cliente.ViewModels
             if (TiempoRestante > 0)
             {
                 TiempoRestante--;
-                if (TiempoRestante == 10)  // Cuando han pasado 5 segundos (quedan 10 segundos)
+                if (TiempoRestante == 10)
                 {
                     Botones = true;
                     MensajeEstado = "¡Puedes responder ahora! Tienes 10 segundos para contestar.";
@@ -140,11 +201,15 @@ namespace Cliente.ViewModels
             }
         }
 
+        public ICommand EnviarCommand { get; }
+        public ICommand ContinuarCommand { get; }
+        public ICommand SeleccionarOpcionCommand { get; }
+
         private void Enviar()
         {
             if (!YaRespondio && Botones && !string.IsNullOrEmpty(Respuesta.respuesta))
             {
-                cliente.Enviar(Respuesta);
+                ClienteUDP.Enviar(Respuesta);
                 YaRespondio = true;
                 Botones = false;
                 MensajeEstado = "¡Respuesta enviada correctamente!";
@@ -159,6 +224,5 @@ namespace Cliente.ViewModels
                 OnPropertyChanged(nameof(Respuesta));
             }
         }
-
     }
 }
